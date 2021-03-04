@@ -1,5 +1,5 @@
 #include <iostream>
-#include "/usr/include/mpi/mpi.h"
+#include <mpi.h>
 
 long long fact(int x)
 {
