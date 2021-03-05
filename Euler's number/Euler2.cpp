@@ -14,53 +14,36 @@ using namespace std;
 int main(int argc, char*argv[]) {
 
      int rank, size, n, i;
-     double e = 2;
+     double e = 0;
 
      MPI_Init(&argc, &argv);
      MPI_Comm_size(MPI_COMM_WORLD, &size);
      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
      MPI_Status status;
+     int mult = 10;
 
      if (rank == 0)
      {
          double sum = 0;
-         for (int i = 2; i < 7; i += 1)
+         for (int i = rank * mult; i < (rank + 1) * mult; i += 1)
          {
              sum += static_cast<double> (1.0/fact(i));
          }
          e += sum;
-         MPI_Recv(&sum, 1, MPI_DOUBLE, 1, 5, MPI_COMM_WORLD, &status);
-         e += sum;
-         MPI_Recv(&sum, 1, MPI_DOUBLE, 2, 5, MPI_COMM_WORLD, &status);
-         e += sum;
-         MPI_Recv(&sum, 1, MPI_DOUBLE, 3, 5, MPI_COMM_WORLD, &status);
-         e += sum;
+         for (int i = 1; i < size; i ++){
+           MPI_Recv(&sum, 1, MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+           e += sum;
+         }
      }
-     else if (rank == 1)
+     else
      {
+         std::cout << "my rank " << rank << std::endl;
          double sum = 0;
-         for (int i = 7; i < 12; i+= 1)
+         for (int i = rank * mult; i < (rank + 1) * mult; i += 1)
          {
              sum += static_cast<double> (1.0/fact(i));
          }
-         MPI_Send(&sum, 1, MPI_DOUBLE, 0, 5, MPI_COMM_WORLD);
-     }
-     else if (rank == 2)
-     {
-         double sum = 0;
-         for (int i = 12; i < 17; i+= 1)
-         {
-             sum += static_cast<double> (1.0/fact(i));
-         }
-         MPI_Send(&sum, 1, MPI_DOUBLE, 0, 5, MPI_COMM_WORLD);
-     }
-     else {
-         double sum = 0;
-         for (int i = 12; i < 17; i+= 1)
-         {
-             sum += static_cast<double> (1.0/fact(i));
-         }
-         MPI_Send(&sum, 1, MPI_DOUBLE, 0, 5, MPI_COMM_WORLD);
+         MPI_Send(&sum, 1, MPI_DOUBLE , 0, 0, MPI_COMM_WORLD);
      }
 
     MPI_Finalize();

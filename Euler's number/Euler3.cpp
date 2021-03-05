@@ -39,21 +39,21 @@ int main(int argc, char*argv[])
             sum += static_cast<float100>(1.0)/static_cast<float100>(fact(i));
         }
         e += sum;
-        MPI_Recv(&sum, sizeof(cpp_dec_float_100), MPI_CHAR , MPI_ANY_SOURCE, 5, MPI_COMM_WORLD, &status);
-        e += sum;
-        MPI_Recv(&sum, sizeof(cpp_dec_float_100),  MPI_CHAR , MPI_ANY_SOURCE, 5, MPI_COMM_WORLD, &status);
-        e += sum;
-        MPI_Recv(&sum, sizeof(cpp_dec_float_100),  MPI_CHAR , MPI_ANY_SOURCE, 5, MPI_COMM_WORLD, &status);
-        e += sum;
+        for (int i = 1; i < size; i ++){
+          MPI_Recv(&sum, sizeof(cpp_dec_float_100), MPI_CHAR , MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+          e += sum;
+        }
+
     }
     else
     {
+        std::cout << "my rank " << rank << std::endl;
         float100 sum = 0;
         for (int128_t i = rank * mult; i < (rank + 1) * mult; i += 1)
         {
             sum += static_cast<float100>(1.0)/static_cast<float100>(fact(i));
         }
-        MPI_Send(&sum, sizeof(cpp_dec_float_100), MPI_CHAR , 0, 5, MPI_COMM_WORLD);
+        MPI_Send(&sum, sizeof(cpp_dec_float_100), MPI_CHAR , 0, 0, MPI_COMM_WORLD);
     }
 
 
