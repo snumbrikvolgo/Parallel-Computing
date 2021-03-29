@@ -7,6 +7,7 @@
 #include <cstring>
 #include <algorithm>
 #include "geometry.h"
+#include "mpi.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
@@ -143,10 +144,17 @@ float cast_ray(const Vec3f &orig, const Vec3f &dir, const std::vector<Triangle> 
 
 
 
-void render(const std::vector<Triangle> &triangles, const std::vector<Light> &lights) {
-    const int width    = 1000;
-    const int height   = 1400;
+void render(const std::vector<Triangle> &triangles, const std::vector<Light> &lights, int argc, char* argv[]) {
+    const int width    = 1400;
+    const int height   = 1000;
     const int fov      = 3.14159 / 1.7;
+
+		int size, rank;
+
+		MPI_Init(&argc, &argv);
+		MPI_Comm_size(MPI_COMM_WORLD, &size);
+		MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+		double time;
 
     unsigned char data[height * width];
     memset(data, 0,height * width);
@@ -154,7 +162,14 @@ void render(const std::vector<Triangle> &triangles, const std::vector<Light> &li
     Vec3f dir, camera(10, 1, -6), rotation(-2, 0, 1);
     float brightness = 0.0;
     //std::cout << triangles.size() << "\n";
-    for (size_t j = 0; j < height; j++)
+
+		if (rank == 0) {
+			std::cout << "Cluster size: " << size << std::endl;
+			std::cout << "Triangles amount: " << triangles.size() << std::endl;
+			time = MPI_Wtime();
+		}
+
+    for (size_t j = height / size * rank; j < height / size * (rank + 1); j++)
     {
       for (size_t i = 0; i < width; i++)
       {
@@ -167,17 +182,23 @@ void render(const std::vector<Triangle> &triangles, const std::vector<Light> &li
         data[i + j * width] = brightness;
       }
     }
+		MPI_Gather(&data[height / size * rank * width], height * width / size, MPI_CHAR, data, height * width / size, MPI_CHAR, 0, MPI_COMM_WORLD);
     std::cout << "kek\n";
-    char pic[] = "result.jpg";
-    saveImage(pic, width, height, data);
+
+		if (rank == 0) {
+				std::cout << "Time: " << MPI_Wtime() - time << std::endl;
+				char pic[] = "result.jpg";
+				saveImage(pic, width, height, data);
+			}
+		MPI_Finalize();
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     std::vector<Triangle> triangles;
     read_triangles("model.xyz", triangles, 100);
     std::vector<Light>  lights;
     lights.push_back(Light(Vec3f(5, -5, 0), 10));
-    render(triangles, lights);
+    render(triangles, lights, argc, argv);
 
     return 0;
 }
