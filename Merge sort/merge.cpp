@@ -85,6 +85,7 @@ int main(int argc, char **argv)
 	int* data;
 	int* chunk;
 	int* other;
+  int* chunk1;
 	int m = 0;
 	int rank, size;
 	int whole = 0;
@@ -93,7 +94,7 @@ int main(int argc, char **argv)
 
   int n = atoi(argv[1]);
   char* in_file = argv[2];
-  char* out_file = argv[3];
+  // char* out_file = argv[3];
 
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -107,22 +108,28 @@ int main(int argc, char **argv)
 		srandom(clock());
 		whole = n / size;
 		remnant = n % size;
+
+    FILE * in;
+    in = fopen(in_file, "r");
 		data = (int *)malloc((n + whole - remnant) * sizeof(int));
 		for(int i = 0; i < n; i++)
-			data[i] = random();
+      fscanf(in, "%d", &data[i]);
+			// data[i] = random();
 		if(remnant != 0)
 		{
 			for(int i = n; i < n + whole - remnant; i++)
 				data[i] = 0;
 			whole++;
 		}
+    fclose(in);
 
-    showVector(in_file, data, n);
+    //showVector(in_file, data, n);
 
 
 		MPI_Bcast(&whole, 1, MPI_INT, 0, MPI_COMM_WORLD);
 		chunk = (int *)malloc(whole * sizeof(int));
 		MPI_Scatter(data, whole, MPI_INT, chunk, whole, MPI_INT, 0, MPI_COMM_WORLD);
+    free(data);
 		m_sort(chunk, 0, whole - 1);
 	}
 	else
@@ -143,7 +150,10 @@ int main(int argc, char **argv)
 				MPI_Recv(&m, 1, MPI_INT, rank +step, 0, MPI_COMM_WORLD, &status);
 				other = (int *)malloc(m * sizeof(int));
 				MPI_Recv(other, m, MPI_INT, rank + step, 0, MPI_COMM_WORLD, &status);
-				chunk = merge(chunk, whole, other, m);
+				chunk1 = merge(chunk, whole, other, m);
+        free(chunk);
+        free(other);
+        chunk = chunk1;
 				whole = whole + m;
 			}
 		}
@@ -152,6 +162,7 @@ int main(int argc, char **argv)
 			int near = rank - step;
 			MPI_Send(&whole ,1,MPI_INT, near, 0,MPI_COMM_WORLD);
 			MPI_Send(chunk, whole, MPI_INT, near, 0,MPI_COMM_WORLD);
+      free(chunk);
 			break;
 		}
 		step = step*2;
@@ -165,10 +176,11 @@ int main(int argc, char **argv)
 		res = fopen("result.txt", "a+");
 		fprintf(res, "%d %d %f\n", n, size, (stopT-startT)/CLOCKS_PER_SEC);
     fclose(res);
-		fout = fopen(out_file,"w");
-		for(int i = 0; i < whole; i++)
-			fprintf(fout,"%d\n",chunk[i]);
-		fclose(fout);
+		// fout = fopen(out_file,"w");
+		// for(int i = 0; i < whole; i++)
+		// 	fprintf(fout,"%d\n",chunk[i]);
+		// fclose(fout);
+    free(chunk);
 
 	}
 	MPI_Finalize();
